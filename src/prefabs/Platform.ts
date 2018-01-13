@@ -12,8 +12,15 @@ export class Platform extends Phaser.Group {
     this.prepare(numTiles, x, y, speed);
   }
 
-  private prepare(numTiles: number, x: number , y: number, speed: number) {
-    this.alive = true;
+  public kill() {
+    super.kill();
+    super.killAll();
+
+    this.moveAll(this.floorPool);
+  }
+
+  public prepare(numTiles: number, x: number , y: number, speed: number) {
+    this.revive();
 
     for (let i = 0; i < numTiles; i++) {
       let floorTile: Phaser.Sprite = this.floorPool.getFirstExists(false);

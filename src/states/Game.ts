@@ -38,14 +38,20 @@ export class Game extends Phaser.State {
     (this.player.body as Phaser.Physics.Arcade.Body).setSize(38, 60, 7, 4);
     this.player.play('running');
 
-    // this.currentPlatform = new Platform(this.game, this.floorPool, 12, 0, 200, -this.levelSpeed);
-    // this.platformPool.add(this.currentPlatform);
+    this.currentPlatform = new Platform(this.game, this.floorPool, 12, 0, 200, -this.levelSpeed);
+    this.platformPool.add(this.currentPlatform);
+
     this.loadLevel();
   }
 
   public update() {
-    this.currentPlatform.forEachAlive((platform: Phaser.Group, index: number) => {
+    this.platformPool.forEachAlive((platform: Phaser.Group, index: number) => {
       this.physics.arcade.collide(this.player, platform);
+
+      if (platform.length &&
+          (platform.children[platform.length - 1] as Phaser.Sprite).right < 0) {
+        platform.kill();
+      }
     }, this);
 
     if ((this.player.body as Phaser.Physics.Arcade.Body).touching.down) {
@@ -61,7 +67,7 @@ export class Game extends Phaser.State {
     }
 
     if (this.currentPlatform.length &&
-        (this.currentPlatform.children[this.currentPlatform.length - 1] as Phaser.Sprite).right < this.world.width) {
+      (this.currentPlatform.children[this.currentPlatform.length - 1] as Phaser.Sprite).right < this.world.width) {
       this.createPlatform();
     }
   }
@@ -75,14 +81,23 @@ export class Game extends Phaser.State {
     const nextPlatformData = this.levelData.platforms[this.currentIndex];
 
     if (nextPlatformData) {
-      this.currentPlatform = new Platform(this.game,
-        this.floorPool,
-        nextPlatformData.numTiles,
-        this.world.width + nextPlatformData.seperation,
-        nextPlatformData.y,
-        -this.levelSpeed);
+      this.currentPlatform = this.platformPool.getFirstDead();
 
-      this.platformPool.add(this.currentPlatform);
+      if (!this.currentPlatform) {
+        this.currentPlatform = new Platform(this.game,
+          this.floorPool,
+          nextPlatformData.numTiles,
+          this.world.width + nextPlatformData.seperation,
+          nextPlatformData.y,
+          -this.levelSpeed);
+
+        this.platformPool.add(this.currentPlatform);
+      } else {
+        this.currentPlatform.prepare(nextPlatformData.numTiles,
+                                     this.world.width + nextPlatformData.seperation,
+                                     nextPlatformData.y,
+                                     -this.levelSpeed);
+      }
 
       this.currentIndex++;
     }
