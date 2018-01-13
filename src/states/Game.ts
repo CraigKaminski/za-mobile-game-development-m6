@@ -11,6 +11,7 @@ export class Game extends Phaser.State {
   private platform: Platform;
   private platformPool: Phaser.Group;
   private startJumpY: number;
+  private levelSpeed = 200;
 
   public init() {
     this.floorPool = this.add.group();
@@ -29,7 +30,7 @@ export class Game extends Phaser.State {
     (this.player.body as Phaser.Physics.Arcade.Body).setSize(38, 60, 7, 4);
     this.player.play('running');
 
-    this.platform = new Platform(this.game, this.floorPool, 12, 0, 200);
+    this.platform = new Platform(this.game, this.floorPool, 12, 0, 200, -this.levelSpeed);
     this.platformPool.add(this.platform);
   }
 
@@ -37,6 +38,12 @@ export class Game extends Phaser.State {
     this.platform.forEachAlive((platform: Phaser.Group, index: number) => {
       this.physics.arcade.collide(this.player, platform);
     }, this);
+
+    if ((this.player.body as Phaser.Physics.Arcade.Body).touching.down) {
+      (this.player.body as Phaser.Physics.Arcade.Body).velocity.x = this.levelSpeed;
+    } else {
+      (this.player.body as Phaser.Physics.Arcade.Body).velocity.x = 0;
+    }
 
     if (this.cursor.up.isDown || this.input.activePointer.isDown) {
       this.playerJump();
