@@ -13,6 +13,8 @@ export class Platform extends Phaser.Group {
   }
 
   private prepare(numTiles: number, x: number , y: number) {
+    this.alive = true;
+    
     for (let i = 0; i < numTiles; i++) {
       let floorTile: Phaser.Sprite = this.floorPool.getFirstExists(false);
 

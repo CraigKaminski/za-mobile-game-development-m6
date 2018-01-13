@@ -1,5 +1,3 @@
-import { Physics } from 'phaser-ce';
-
 import { Platform } from '../prefabs/Platform';
 
 export class Game extends Phaser.State {
@@ -11,10 +9,12 @@ export class Game extends Phaser.State {
   private myCoins = 0;
   private player: Phaser.Sprite;
   private platform: Platform;
+  private platformPool: Phaser.Group;
   private startJumpY: number;
 
   public init() {
     this.floorPool = this.add.group();
+    this.platformPool = this.add.group();
 
     this.physics.arcade.gravity.y = 1000;
 
@@ -26,15 +26,17 @@ export class Game extends Phaser.State {
     this.player.anchor.setTo(0.5);
     this.player.animations.add('running', [0, 1, 2, 3, 2, 1], 15, true);
     this.physics.arcade.enable(this.player);
-    (this.player.body as Physics.Arcade.Body).setSize(38, 60, 7, 4);
+    (this.player.body as Phaser.Physics.Arcade.Body).setSize(38, 60, 7, 4);
     this.player.play('running');
 
     this.platform = new Platform(this.game, this.floorPool, 12, 0, 200);
-    this.add.existing(this.platform);
+    this.platformPool.add(this.platform);
   }
 
   public update() {
-    this.physics.arcade.collide(this.player, this.platform);
+    this.platform.forEachAlive((platform: Phaser.Group, index: number) => {
+      this.physics.arcade.collide(this.player, platform);
+    }, this);
 
     if (this.cursor.up.isDown || this.input.activePointer.isDown) {
       this.playerJump();
@@ -49,16 +51,16 @@ export class Game extends Phaser.State {
   }
 
   private playerJump() {
-    if ((this.player.body as Physics.Arcade.Body).touching.down) {
+    if ((this.player.body as Phaser.Physics.Arcade.Body).touching.down) {
       this.startJumpY = this.player.y;
       this.isJumping = true;
       this.jumpPeaked = false;
-      (this.player.body as Physics.Arcade.Body).velocity.y = -300;
+      (this.player.body as Phaser.Physics.Arcade.Body).velocity.y = -300;
     } else if (this.isJumping && !this.jumpPeaked) {
       const distanceJumped = this.startJumpY - this.player.y;
       console.log('distanceJumped');
       if (distanceJumped <= this.maxJumpDistance) {
-        (this.player.body as Physics.Arcade.Body).velocity.y = -300;
+        (this.player.body as Phaser.Physics.Arcade.Body).velocity.y = -300;
       } else {
         this.jumpPeaked = true;
       }
