@@ -1,19 +1,11 @@
 import { Platform } from '../prefabs/Platform';
 
 export class Game extends Phaser.State {
-  private currentIndex: number;
   private currentPlatform: Platform;
   private cursor: Phaser.CursorKeys;
   private floorPool: Phaser.Group;
   private isJumping: boolean;
   private jumpPeaked: boolean;
-  private levelData: {
-    platforms: Array<{
-      numTiles: number,
-      seperation: number,
-      y: number,
-    }>,
-  };
   private readonly maxJumpDistance = 120;
   private myCoins = 0;
   private player: Phaser.Sprite;
@@ -40,8 +32,6 @@ export class Game extends Phaser.State {
 
     this.currentPlatform = new Platform(this.game, this.floorPool, 12, 0, 200, -this.levelSpeed);
     this.platformPool.add(this.currentPlatform);
-
-    this.loadLevel();
   }
 
   public update() {
@@ -78,7 +68,7 @@ export class Game extends Phaser.State {
   }
 
   private createPlatform() {
-    const nextPlatformData = this.levelData.platforms[this.currentIndex];
+    const nextPlatformData = this.generateRandomPlatform();
 
     if (nextPlatformData) {
       this.currentPlatform = this.platformPool.getFirstDead();
@@ -98,55 +88,27 @@ export class Game extends Phaser.State {
                                      nextPlatformData.y,
                                      -this.levelSpeed);
       }
-
-      this.currentIndex++;
     }
   }
 
-  private loadLevel() {
-    this.levelData = {
-      platforms: [
-        {
-          numTiles: 4,
-          seperation: 50,
-          y: 200,
-        },
-        {
-          numTiles: 6,
-          seperation: 50,
-          y: 250,
-        },
-        {
-          numTiles: 3,
-          seperation: 100,
-          y: 200,
-        },
-        {
-          numTiles: 8,
-          seperation: 50,
-          y: 250,
-        },
-        {
-          numTiles: 10,
-          seperation: 100,
-          y: 200,
-        },
-        {
-          numTiles: 4,
-          seperation: 100,
-          y: 300,
-        },
-        {
-          numTiles: 4,
-          seperation: 50,
-          y: 200,
-        },
-      ],
-    };
+  private generateRandomPlatform(): {numTiles: number, seperation: number, y: number} {
+    const data: any = {};
 
-    this.currentIndex = 0;
+    const minSeperation = 60;
+    const maxSeperation = 200;
+    data.seperation = minSeperation + Math.random() * (maxSeperation - minSeperation);
 
-    this.createPlatform();
+    const minDifY = -120;
+    const maxDifY = 120;
+    data.y = this.currentPlatform.children[0].y + minDifY + Math.random() * (maxDifY - minDifY);
+    data.y = Math.max(150, data.y);
+    data.y = Math.min(this.world.height - 50, data.y);
+
+    const minTiles = 1;
+    const maxTiles = 5;
+    data.numTiles = minTiles + Math.random() * (maxTiles - minTiles);
+
+    return data;
   }
 
   private playerJump() {
