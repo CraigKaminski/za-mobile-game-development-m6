@@ -1,6 +1,8 @@
 import { Platform } from '../prefabs/Platform';
 
 export class Game extends Phaser.State {
+  private coinSound: Phaser.Sound;
+  private coinsPool: Phaser.Group;
   private currentPlatform: Platform;
   private cursor: Phaser.CursorKeys;
   private floorPool: Phaser.Group;
@@ -16,6 +18,8 @@ export class Game extends Phaser.State {
   public init() {
     this.floorPool = this.add.group();
     this.platformPool = this.add.group();
+    this.coinsPool = this.add.group();
+    this.coinsPool.enableBody = true;
 
     this.physics.arcade.gravity.y = 1000;
 
@@ -30,8 +34,10 @@ export class Game extends Phaser.State {
     (this.player.body as Phaser.Physics.Arcade.Body).setSize(38, 60, 7, 4);
     this.player.play('running');
 
-    this.currentPlatform = new Platform(this.game, this.floorPool, 12, 0, 200, -this.levelSpeed);
+    this.currentPlatform = new Platform(this.game, this.floorPool, 12, 0, 200, -this.levelSpeed, this.coinsPool);
     this.platformPool.add(this.currentPlatform);
+
+    this.coinSound = this.add.audio('coin'):
   }
 
   public update() {
@@ -43,6 +49,8 @@ export class Game extends Phaser.State {
         platform.kill();
       }
     }, this);
+
+    this.physics.arcade.overlap(this.player, this.coinsPool, this.collectCoin, null, this);
 
     if ((this.player.body as Phaser.Physics.Arcade.Body).touching.down) {
       (this.player.body as Phaser.Physics.Arcade.Body).velocity.x = this.levelSpeed;
@@ -60,11 +68,23 @@ export class Game extends Phaser.State {
       (this.currentPlatform.children[this.currentPlatform.length - 1] as Phaser.Sprite).right < this.world.width) {
       this.createPlatform();
     }
+
+    this.coinsPool.forEach((coin: Phaser.Sprite) => {
+      if (coin.right <= 0) {
+        coin.kill();
+      }
+    }, this);
   }
 
   public render() {
     // this.game.debug.body(this.player);
     // this.game.debug.bodyInfo(this.player, 0, 30);
+  }
+
+  private collectCoin(player: Phaser.Sprite, coin: Phaser.Sprite) {
+    coin.kill();
+    this.myCoins++;
+    this.coinSound.play();
   }
 
   private createPlatform() {
@@ -79,7 +99,8 @@ export class Game extends Phaser.State {
           nextPlatformData.numTiles,
           this.world.width + nextPlatformData.seperation,
           nextPlatformData.y,
-          -this.levelSpeed);
+          -this.levelSpeed,
+          this.coinsPool);
 
         this.platformPool.add(this.currentPlatform);
       } else {
