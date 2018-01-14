@@ -1,25 +1,32 @@
 import { Platform } from '../prefabs/Platform';
 
 export class Game extends Phaser.State {
+  private background: Phaser.TileSprite;
+  private coinsCountLabel: Phaser.Text;
   private coinSound: Phaser.Sound;
   private coinsPool: Phaser.Group;
   private currentPlatform: Platform;
   private cursor: Phaser.CursorKeys;
   private floorPool: Phaser.Group;
+  private highScore: number;
   private isJumping: boolean;
   private jumpPeaked: boolean;
   private readonly maxJumpDistance = 120;
-  private myCoins = 0;
+  private myCoins: number;
+  private overlay: Phaser.BitmapData;
+  private panel: Phaser.Sprite;
   private player: Phaser.Sprite;
   private platformPool: Phaser.Group;
   private startJumpY: number;
   private levelSpeed = 200;
+  private water: Phaser.TileSprite;
 
   public init() {
     this.floorPool = this.add.group();
     this.platformPool = this.add.group();
     this.coinsPool = this.add.group();
     this.coinsPool.enableBody = true;
+    this.myCoins = 0;
 
     this.physics.arcade.gravity.y = 1000;
 
@@ -27,6 +34,11 @@ export class Game extends Phaser.State {
   }
 
   public create() {
+    this.background = this.add.tileSprite(0, 0, this.world.width, this.world.height, 'background');
+    this.background.tileScale.y = 2;
+    this.background.autoScroll(-this.levelSpeed / 6, 0);
+    this.world.sendToBack(this.background);
+
     this.player = this.add.sprite(50, 50, 'player');
     this.player.anchor.setTo(0.5);
     this.player.animations.add('running', [0, 1, 2, 3, 2, 1], 15, true);
@@ -37,10 +49,20 @@ export class Game extends Phaser.State {
     this.currentPlatform = new Platform(this.game, this.floorPool, 12, 0, 200, -this.levelSpeed, this.coinsPool);
     this.platformPool.add(this.currentPlatform);
 
-    this.coinSound = this.add.audio('coin'):
+    this.coinSound = this.add.audio('coin');
+
+    this.water = this.add.tileSprite(0, this.world.height - 30, this.world.width, 30, 'water');
+    this.water.autoScroll(-this.levelSpeed / 2, 0);
+
+    const style = { font: '30px Arial', fill: '#fff' };
+    this.coinsCountLabel = this.add.text(10, 20, '0', style);
   }
 
   public update() {
+    if (!this.player.alive) {
+      return;
+    }
+
     this.platformPool.forEachAlive((platform: Phaser.Group, index: number) => {
       this.physics.arcade.collide(this.player, platform);
 
@@ -50,7 +72,7 @@ export class Game extends Phaser.State {
       }
     }, this);
 
-    this.physics.arcade.overlap(this.player, this.coinsPool, this.collectCoin, null, this);
+    this.physics.arcade.overlap(this.player, this.coinsPool, this.collectCoin, undefined, this);
 
     if ((this.player.body as Phaser.Physics.Arcade.Body).touching.down) {
       (this.player.body as Phaser.Physics.Arcade.Body).velocity.x = this.levelSpeed;
@@ -74,6 +96,10 @@ export class Game extends Phaser.State {
         coin.kill();
       }
     }, this);
+
+    if (this.player.top >= this.world.height || this.player.left <= 0) {
+      this.gameOver();
+    }
   }
 
   public render() {
@@ -85,6 +111,7 @@ export class Game extends Phaser.State {
     coin.kill();
     this.myCoins++;
     this.coinSound.play();
+    this.coinsCountLabel.text = this.myCoins.toString();
   }
 
   private createPlatform() {
@@ -110,6 +137,41 @@ export class Game extends Phaser.State {
                                      -this.levelSpeed);
       }
     }
+  }
+
+  private gameOver() {
+    this.player.kill();
+    this.updateHighScore();
+
+    this.overlay = this.add.bitmapData(this.game.width, this.game.height);
+    this.overlay.ctx.fillStyle = '#000';
+    this.overlay.ctx.fillRect(0, 0, this.game.width, this.game.height);
+
+    this.panel = this.add.sprite(0, 0, this.overlay);
+    this.panel.alpha = 0.55;
+
+    const gameOverPanel = this.add.tween(this.panel);
+    gameOverPanel.to({y: 0}, 500);
+
+    gameOverPanel.onComplete.add(() => {
+      this.water.stopScroll();
+      this.background.stopScroll();
+
+      let style = {font: '30px Arial', fill: '#fff'};
+      this.add.text(this.game.width / 2, this.game.height / 2, 'GAME OVER', style)
+        .anchor.setTo(0.5);
+      style = {font: '20px Arial', fill: '#fff'};
+      this.add.text(this.game.width / 2, this.game.height / 2 + 50, 'High score: ' + this.highScore, style)
+        .anchor.setTo(0.5);
+      this.add.text(this.game.width / 2, this.game.height / 2 + 80, 'Your score: ' + this.myCoins, style)
+        .anchor.setTo(0.5);
+      this.add.text(this.game.width / 2, this.game.height / 2 + 120, 'Tap to play again', style)
+        .anchor.setTo(0.5);
+
+      this.input.onDown.addOnce(this.restart, this);
+    }, this);
+
+    gameOverPanel.start();
   }
 
   private generateRandomPlatform(): {numTiles: number, seperation: number, y: number} {
@@ -146,6 +208,19 @@ export class Game extends Phaser.State {
       } else {
         this.jumpPeaked = true;
       }
+    }
+  }
+
+  private restart() {
+    this.state.start('Game');
+  }
+
+  private updateHighScore() {
+    this.highScore = parseInt(localStorage.getItem('highScore') || '0', 10);
+
+    if (this.highScore < this.myCoins) {
+      this.highScore = this.myCoins;
+      localStorage.setItem('highScore', this.highScore.toString());
     }
   }
 }

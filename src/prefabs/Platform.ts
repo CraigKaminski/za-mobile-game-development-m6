@@ -3,7 +3,13 @@ export class Platform extends Phaser.Group {
   private floorPool: Phaser.Group;
   private readonly tileSize = 40;
 
-  constructor(game: Phaser.Game, floorPool: Phaser.Group, numTiles: number, x: number, y: number, speed: number, coinsPool: Phaser.Group) {
+  constructor(game: Phaser.Game,
+              floorPool: Phaser.Group,
+              numTiles: number,
+              x: number,
+              y: number,
+              speed: number,
+              coinsPool: Phaser.Group) {
     super(game);
 
     this.coinsPool = coinsPool;
